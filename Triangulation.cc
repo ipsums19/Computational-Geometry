@@ -124,10 +124,6 @@ void Triangulation::triangulate(const std::vector<Vector3>& ps,
             t[2] == initial_points[0] or t[2] == initial_points[1] or t[2] == initial_points[2])
             continue;
         triangles.push_back(t);
-        std::stringstream ss;
-        ss << hex << face;
-        std::string name = ss.str();
-        triangles[triangles.size()-1].setLabel(name);
     }
 
     std::set<Face*> faces_to_ignore;
@@ -143,10 +139,6 @@ void Triangulation::triangulate(const std::vector<Vector3>& ps,
             t[2] == initial_points[0] or t[2] == initial_points[1] or t[2] == initial_points[2])
             continue;
         triangles_pruned.push_back(t);
-        std::stringstream ss;
-        ss << hex << face;
-        std::string name = ss.str();
-        triangles_pruned[triangles_pruned.size()-1].setLabel(name);
     }
 
     initial_points.clear();
@@ -168,41 +160,23 @@ void Triangulation::prune(const std::vector<Vector3>& ps, const std::vector<int>
     Vertex* b_begin = s;
     Vertex* t = vertices[idxs[1] + 3];;
     Edge* current_edge = findEdge(t, s);
+
     for (int i = 2; i < idxs.size(); ++i)
     {
         int idx = idxs[i];
         Vertex* goal;
-        if (idx < 0)
-        {
-            goal = b_begin;
-        }
-        else
-        {
-            goal = vertices[idx + 3];
-        }
-        if (current_edge == nullptr)
-        {
-            std::cout << "edge not found" << std::endl;
-        }
-        else
-        {
-            // For one edge this loop loops forever,
-            // limmiting it and looking for the edge
-            // afterwards seems to do the job (in a very VERY ugly way)
-            int count = 0;
-            do
-            {
-                faces_to_ignore.insert(current_edge->twin->face);
-                current_edge = current_edge->twin->next;
-            } while (current_edge->twin->vertex != goal and ++count < 40);
 
-            current_edge = current_edge->twin;
+        goal = idx < 0 ? current_edge->twin->vertex : vertices[idx + 3];
 
-            if (count == 40)
-            {
-                current_edge = findEdge(vertices[idxs[++i] + 3], goal);
-            }
-        }
+        int count = 0;
+        do
+        {
+            faces_to_ignore.insert(current_edge->twin->face);
+            current_edge = current_edge->twin->next;
+        } while (current_edge->twin->vertex != goal );
+
+        current_edge = current_edge->twin;
+
         if (idx < 0)
         {
             s = vertices[idxs[++i] + 3];
@@ -224,16 +198,6 @@ Triangulation::Edge* Triangulation::findEdge(const Vertex* s, const Vertex* e)
         }
         current_edge = current_edge->twin->next;
     } while (current_edge != s->edge);
-
-    current_edge = e->edge;
-    do
-    {
-        if (current_edge->twin->vertex == s)
-        {
-            return current_edge->twin;
-        }
-        current_edge = current_edge->twin->next;
-    } while (current_edge != e->edge);
 
     return nullptr;
 }
